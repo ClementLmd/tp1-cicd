@@ -8,32 +8,36 @@ on:
   workflow_dispatch:
 
 jobs:
-  ci:
-    name: Build, Lint & Test
+  lint:
+    name: Lint ESLint
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout du code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js 18
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
 
-      - name: Installation des dépendances
-        run: npm ci
-
-      - name: Lint ESLint
-        run: npm run lint
-
-      - name: Tests unitaires
-        run: npm test
-
+  test:
+    name: Tests unitaires (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npm test
       - name: Upload rapport de couverture
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: coverage-report
+          name: coverage-report-node-${{ matrix.node-version }}
           path: coverage/
           retention-days: 7
