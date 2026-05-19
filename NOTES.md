@@ -1,8 +1,6 @@
 # TP S4 — Notes d'expérimentation
 
-## 3.1 — fail-fast: false (échec volontaire Node 20)
-
-Après le push `test: échec intentionnel Node 20`, compléter en observant GitHub Actions :
+## 3.1 — fail-fast: false
 
 1. **test(18) est-il annulé quand test(20) échoue ?**
    - Réponse : non
@@ -15,3 +13,21 @@ Après le push `test: échec intentionnel Node 20`, compléter en observant GitH
 
 4. **Quel est l'exit code final du workflow ?**
    - Réponse : 1
+
+## 3.1 — fail-fast: true
+
+- **test(18) est-il annulé dès que test(20) échoue ?**
+  - Réponse : oui (statut Cancelled)
+
+## 3.2 — concurrency
+
+- **Résultat sur les 3 pushes rapides ?**
+  - Réponse : 2 runs Cancelled, 1 run vert
+
+## 3.3 — artefacts coverage-node-18 vs coverage-node-20
+
+- **Les % sont-ils identiques ?**
+  - Réponse : oui, 100 % partout sur calculator.js
+
+- **Observation HTML ?**
+  - Réponse : même rapport, tout vert, pas de diff Node 18/20
