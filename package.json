@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest --coverage",
+    "test": "jest",
     "test:ci": "jest --ci --coverage",
     "test:watch": "jest --watch",
     "lint": "eslint src",
@@ -29,7 +29,9 @@
     "jest": "^30.4.2"
   },
   "jest": {
-    "coverageReporters": ["text", "lcov", "json-summary"],
+    "testEnvironment": "node",
+    "collectCoverageFrom": ["src/**/*.js", "!src/server.js"],
+    "coverageReporters": ["lcov", "text", "json-summary"],
     "coverageThreshold": {
       "global": {
         "branches": 80,
