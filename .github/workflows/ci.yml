@@ -37,6 +37,8 @@ jobs:
       fail-fast: false
       matrix:
         node-version: [18, 20]
+    outputs:
+      lines: ${{ steps.coverage.outputs.lines }}
     steps:
       - uses: actions/checkout@v4
       - name: Setup Node.js ${{ matrix.node-version }}
@@ -48,6 +50,12 @@ jobs:
         run: npm ci
       - name: Tests unitaires + couverture
         run: npm run test:ci
+      - name: Calculer le coverage total
+        id: coverage
+        run: |
+          PCT=$(node -e "const d=JSON.parse(require('fs').readFileSync('coverage/coverage-summary.json','utf8')); console.log(d.total.lines.pct)")
+          echo "lines=$PCT" >> $GITHUB_OUTPUT
+          echo "Coverage lines (Node ${{ matrix.node-version }}): ${PCT}%"
       - name: Upload rapport de couverture
         uses: actions/upload-artifact@v4
         if: always()
@@ -56,10 +64,44 @@ jobs:
           path: coverage/
           retention-days: 14
 
+  merge-coverage:
+    name: 📦 Agrégation outputs coverage
+    runs-on: ubuntu-latest
+    needs: test
+    if: always()
+    outputs:
+      lines-18: ${{ steps.aggregate.outputs.lines-18 }}
+      lines-20: ${{ steps.aggregate.outputs.lines-20 }}
+    steps:
+      - name: Télécharger les rapports coverage
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-node-*
+          merge-multiple: false
+          path: coverage-artifacts/
+      - name: Agréger les outputs (matrix → job unique)
+        id: aggregate
+        run: |
+          read_pct() {
+            node -e "
+              try {
+                const p = process.argv[1];
+                const d = JSON.parse(require('fs').readFileSync(p, 'utf8'));
+                console.log(d.total.lines.pct);
+              } catch {
+                console.log('');
+              }
+            " "$1"
+          }
+          L18=$(read_pct "coverage-artifacts/coverage-node-18/coverage-summary.json")
+          L20=$(read_pct "coverage-artifacts/coverage-node-20/coverage-summary.json")
+          echo "lines-18=$L18" >> $GITHUB_OUTPUT
+          echo "lines-20=$L20" >> $GITHUB_OUTPUT
+
   report:
     name: 📊 Rapport Coverage
     runs-on: ubuntu-latest
-    needs: [lint, test]
+    needs: [lint, test, merge-coverage]
     if: always()
     steps:
       - uses: actions/checkout@v4
@@ -86,6 +128,27 @@ jobs:
               " "$summary" "$version" >> $GITHUB_STEP_SUMMARY
             fi
           done
+      - name: Afficher le coverage (outputs + seuil 80%)
+        env:
+          THRESHOLD: 80
+          LINES_18: ${{ needs.merge-coverage.outputs.lines-18 }}
+          LINES_20: ${{ needs.merge-coverage.outputs.lines-20 }}
+        run: |
+          echo '' >> $GITHUB_STEP_SUMMARY
+          echo '## 🎯 Couverture (job outputs)' >> $GITHUB_STEP_SUMMARY
+          node -e "
+            const threshold = Number(process.env.THRESHOLD);
+            const rows = [
+              ['18', process.env.LINES_18],
+              ['20', process.env.LINES_20],
+            ];
+            for (const [ver, pct] of rows) {
+              if (!pct) continue;
+              const n = Number(pct);
+              const emoji = n >= threshold ? '✅' : '❌';
+              console.log('- Node ' + ver + ' : **' + pct + '%** ' + emoji + ' (seuil ' + threshold + '%)');
+            }
+          " >> $GITHUB_STEP_SUMMARY
       - name: Résultat global CI
         run: |
           lint_ok='${{ needs.lint.result }}'
