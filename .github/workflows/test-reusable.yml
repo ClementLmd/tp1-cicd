@@ -1,0 +1,95 @@
+name: Reusable — Tests
+
+on:
+  workflow_call:
+    inputs:
+      node-versions:
+        type: string
+        default: "[18, 20]"
+      coverage-threshold:
+        type: number
+        default: 80
+    outputs:
+      lines-18:
+        description: Coverage lines Node 18
+        value: ${{ jobs.merge-coverage.outputs.lines-18 }}
+      lines-20:
+        description: Coverage lines Node 20
+        value: ${{ jobs.merge-coverage.outputs.lines-20 }}
+
+jobs:
+  test:
+    name: 🧪 Tests — Node.js ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ${{ fromJSON(inputs.node-versions) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - name: Installation des dépendances
+        run: npm ci
+      - name: Tests unitaires + couverture
+        run: npm run test:ci
+      - name: Calculer le coverage total
+        id: coverage
+        run: |
+          PCT=$(node -e "const d=JSON.parse(require('fs').readFileSync('coverage/coverage-summary.json','utf8')); console.log(d.total.lines.pct)")
+          echo "lines=$PCT" >> $GITHUB_OUTPUT
+          echo "Coverage lines (Node ${{ matrix.node-version }}): ${PCT}%"
+          node -e "
+            const pct = Number(process.argv[1]);
+            const threshold = Number(process.argv[2]);
+            if (pct < threshold) {
+              console.error('Couverture ' + pct + '% < seuil ' + threshold + '%');
+              process.exit(1);
+            }
+          " "$PCT" "${{ inputs.coverage-threshold }}"
+      - name: Upload rapport de couverture
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-node-${{ matrix.node-version }}
+          path: coverage/
+          retention-days: 14
+
+  merge-coverage:
+    name: 📦 Agrégation outputs coverage
+    runs-on: ubuntu-latest
+    needs: test
+    if: always()
+    outputs:
+      lines-18: ${{ steps.aggregate.outputs.lines-18 }}
+      lines-20: ${{ steps.aggregate.outputs.lines-20 }}
+    steps:
+      - name: Télécharger les rapports coverage
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-node-*
+          merge-multiple: false
+          path: coverage-artifacts/
+      - name: Agréger les outputs (matrix → job unique)
+        id: aggregate
+        env:
+          NODE_VERSIONS: ${{ inputs.node-versions }}
+        run: |
+          read_pct() {
+            node -e "
+              try {
+                const p = process.argv[1];
+                const d = JSON.parse(require('fs').readFileSync(p, 'utf8'));
+                console.log(d.total.lines.pct);
+              } catch {
+                console.log('');
+              }
+            " "$1"
+          }
+          for ver in $(node -e "JSON.parse(process.env.NODE_VERSIONS).forEach(v=>console.log(v))"); do
+            pct=$(read_pct "coverage-artifacts/coverage-node-${ver}/coverage-summary.json")
+            echo "lines-${ver}=${pct}" >> $GITHUB_OUTPUT
+          done
