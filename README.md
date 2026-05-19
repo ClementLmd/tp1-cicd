@@ -4,7 +4,7 @@
 
 ## Description
 
-Pipeline CI/CD avec GitHub Actions, Node.js, Jest et ESLint.
+Pipeline CI/CD avec GitHub Actions, Node.js, Jest et ESLint réalisé en cours de CI/CD.
 
 ## Lancer les tests
 
