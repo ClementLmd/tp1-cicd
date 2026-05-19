@@ -17,6 +17,9 @@ on:
         description: Coverage lines Node 20
         value: ${{ jobs.merge-coverage.outputs.lines-20 }}
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: 🧪 Tests — Node.js ${{ matrix.node-version }}
@@ -26,10 +29,11 @@ jobs:
       matrix:
         node-version: ${{ fromJSON(inputs.node-versions) }}
     steps:
+      - uses: actions/checkout@v4
       - name: Setup Node (composite action)
         uses: ./.github/actions/setup-node-cached
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: ${{ format('{0}', matrix.node-version) }}
       - name: Tests unitaires + couverture
         run: npm run test:ci
       - name: Calculer le coverage total
