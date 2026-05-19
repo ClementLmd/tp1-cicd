@@ -2,7 +2,7 @@ name: CI — Lint, Tests & Coverage
 
 on:
   push:
-    branches: [main, 'feature/**']
+    branches: [main, "feature/**"]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -19,8 +19,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: "18"
+          cache: "npm"
       - name: Installation des dépendances
         run: npm ci
       - name: Vérification ESLint
@@ -30,7 +30,7 @@ jobs:
     name: 🧪 Tests — Node.js ${{ matrix.node-version }}
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         node-version: [18, 20]
     steps:
@@ -39,7 +39,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          cache: "npm"
       - name: Installation des dépendances
         run: npm ci
       - name: Tests unitaires + couverture
