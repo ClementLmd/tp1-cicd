@@ -3,6 +3,10 @@ name: CI — Lint, Tests & Coverage
 on:
   push:
     branches: [main, "feature/**"]
+    paths:
+      - "src/**"
+      - "package*.json"
+      - ".github/workflows/**"
   pull_request:
     branches: [main]
   workflow_dispatch:

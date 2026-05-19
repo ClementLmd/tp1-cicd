@@ -31,3 +31,8 @@
 
 - **Observation HTML ?**
   - Réponse : même rapport, tout vert, pas de diff Node 18/20
+
+## 4 — Challenge 1 : path filters
+
+- **Risque d'un filtre trop restrictif ?**
+  - Réponse : le CI ne tourne pas sur certains changements (ex. config eslint, jest, scripts) → merge possible sans vérif
