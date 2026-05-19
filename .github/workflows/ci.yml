@@ -7,6 +7,7 @@ on:
       - "src/**"
       - "package*.json"
       - ".github/workflows/**"
+      - ".github/actions/**"
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -20,13 +21,10 @@ jobs:
     name: 🔍 Lint ESLint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Setup Node (composite action)
+        uses: ./.github/actions/setup-node-cached
         with:
           node-version: "18"
-          cache: "npm"
-      - name: Installation des dépendances
-        run: npm ci
       - name: Vérification ESLint
         run: npm run lint
 
